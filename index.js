@@ -4,8 +4,12 @@ const Hapi = require('hapi');
 const port = process.env.PORT || 8000;
 // Create a server with a host and port
 const server = new Hapi.Server();
+
 server.connection({ 
-    port 
+    port,
+    routes: {
+        cors: true
+      }
 });
 
 // Add the route
@@ -14,7 +18,7 @@ server.route({
     path:'/sprints/{sprintID}/issues', 
     handler: function (request, reply) {
 
-        return reply([{
+        return reply({data:[{
             "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
             "id": "507456",
             "self": "http://localhost/rest/agile/1.0/issue/507456",
@@ -33,7 +37,7 @@ server.route({
               "summary": "Issue02",
               "description": "Explicação da issue02 bem mais completa"
             }
-          }]);
+          }]});
     }
 });
 
