@@ -2,6 +2,9 @@
 
 const Hapi = require('hapi');
 const port = process.env.PORT || 8000;
+const endpointUrl = process.env.JIRA_URL;
+const JIRAController = require('./JIRAController');
+const statusPronto = ["Cancelado", "Concluído", "Recusada", "Teste Integrado Concluído", "Expedido", "Resolved","Reprovado"];
 // Create a server with a host and port
 const server = new Hapi.Server();
 
@@ -17,29 +20,47 @@ server.route({
     method: 'POST',
     path:'/sprints/{sprintID}/issues', 
     handler: function (request, reply) {
-
-        return reply({data:[{
-            "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
-            "id": "507456",
-            "self": "http://localhost/rest/agile/1.0/issue/507456",
-            "key": "DFRM1-3175",
-            "fields": {
-              "summary": "Issue01",
-              "description": "Explicação da issue01 bem mais completa"
-            }
-          },
-          {
-            "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
-            "id": "486141",
-            "self": "http://localhost/rest/agile/1.0/issue/486141",
-            "key": "DFRM1-2913",
-            "fields": {
-              "summary": "Issue02",
-              "description": "Explicação da issue02 bem mais completa"
-            }
-          }]});
+        JIRAController.sprint.getIssues(request.params.sprintID,{'fields':'id,description,summary','jql':'issuetype IN (Manutenção,Story)'})
+            .then(data => {
+                data.issues = data.issues.map(x => {
+                    x['url'] = endpointUrl+"/browse/"+x.key;
+                    return x;
+                })
+                return data;
+            })
+            .then(reply);
     }
 });
+
+server.route({
+    method: 'GET',
+    path:'/projects/{projectID}/issues/associacao', 
+    handler: function (request, reply) {
+        JIRAController.project.getIssues(request.params.projectID,{'fields':'parent','jql':'issuetype IN ("Associado (Sub-tarefa)") AND status = Associado '})
+            .then(data => {
+                return data.filter( issue => {
+                    let parent = issue.fields ? issue.fields.parent : null;
+                    if(parent){
+                        return statusPronto.findIndex( status => status == parent.fields.status.name) < 0;
+                    }else{
+                        return false;
+                    }
+                });
+            })
+            .then(data => {
+                return data.map(x => {
+                    let parent = x.fields ? x.fields.parent : null;
+                    if(parent){
+                        parent['url'] = endpointUrl+"/browse/"+parent.key;
+                    }
+                    
+                    return x;
+                });
+            })
+            .then(reply);
+    }
+});
+
 
 // Start the server
 server.start((err) => {

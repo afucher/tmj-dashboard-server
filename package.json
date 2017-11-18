@@ -9,6 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "hapi": "^16.6.2"
+    "btoa": "^1.1.2",
+    "hapi": "^16.6.2",
+    "jira-agile-api-client": "^1.0.9",
+    "jira-search": "^0.1.2",
+    "node-fetch": "^1.7.3"
   }
 }
